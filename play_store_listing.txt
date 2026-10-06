@@ -1,0 +1,24 @@
+SHORT DESCRIPTION (max 80 characters)
+--------------------------------------
+Simple, no-fuss habit tracker to build streaks and track your progress.
+
+FULL DESCRIPTION (max 4000 characters)
+--------------------------------------
+Habitly is a simple habit tracker for people who just want to check things off and see how they're doing — no clutter, no sign-ups, no ads.
+
+Track any habit you want — reading, workouts, drinking water, meditating, whatever it is for you. Mark it done for the day with one tap, and Habitly quietly keeps count in the background.
+
+WHAT YOU GET
+- Daily view: see today's habits, and swipe through past or future days
+- Streaks: know exactly how many days in a row you've kept a habit going
+- Stats: see your completion rate at a glance
+- Progress view: a week, month, or year calendar so you can spot patterns
+- Edit or delete habits anytime — nothing is locked in
+
+Everything is stored right on your phone. No account, no login, no internet connection required — Habitly works completely offline and never sends your data anywhere.
+
+If Habitly is helping you build better habits, a quick rating would mean a lot — it helps other people find the app too.
+
+PRIVACY POLICY URL
+--------------------------------------
+https://sites.google.com/view/habitly-app-privacy/home

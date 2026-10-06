@@ -16,8 +16,8 @@ class DateStrip extends StatefulWidget {
 
 class _DateStripState extends State<DateStrip> {
   static const _rangeDays = 60; // how many days before/after today are scrollable
-  static const _itemWidth = 56.0;
-  static const _weekdayAbbrev = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  static const _itemWidth = 60.0;
+  static const _weekdayAbbrev = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
   late final DateTime _anchor; // "today", fixed once when the strip is built
   late final ScrollController _controller;
@@ -50,12 +50,14 @@ class _DateStripState extends State<DateStrip> {
   @override
   Widget build(BuildContext context) {
     final totalDays = _rangeDays * 2 + 1;
+    final accent = Theme.of(context).colorScheme.primary;
 
     return SizedBox(
-      height: 76,
+      height: 84,
       child: ListView.builder(
         controller: _controller,
         scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         itemCount: totalDays,
         itemBuilder: (context, index) {
           final date = _anchor.subtract(Duration(days: _rangeDays)).add(Duration(days: index));
@@ -66,33 +68,42 @@ class _DateStripState extends State<DateStrip> {
             onTap: () => widget.onDateSelected(date),
             child: Container(
               width: _itemWidth - 8,
-              margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? Theme.of(context).colorScheme.primary
-                    : isToday
-                        ? Theme.of(context).colorScheme.primary.withOpacity(0.12)
-                        : Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              alignment: Alignment.center,
+              margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     _weekdayAbbrev[date.weekday % 7],
                     style: TextStyle(
-                      fontSize: 11,
-                      color: isSelected ? Colors.white : Colors.black54,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected ? accent : Colors.black54,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${date.day}',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: isSelected ? Colors.white : Colors.black87,
+                  const SizedBox(height: 6),
+                  Container(
+                    width: 44,
+                    height: 44,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isSelected ? accent : Colors.transparent,
+                      border: Border.all(
+                        color: isSelected
+                            ? accent
+                            : isToday
+                                ? accent.withOpacity(0.5)
+                                : Colors.grey.shade200,
+                        width: isToday && !isSelected ? 2 : 1.5,
+                      ),
+                    ),
+                    child: Text(
+                      '${date.day}',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isSelected ? Colors.white : Colors.black87,
+                      ),
                     ),
                   ),
                 ],

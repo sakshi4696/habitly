@@ -4,6 +4,9 @@ import '../services/habit_storage.dart';
 import '../widgets/habit_card.dart';
 import '../widgets/date_strip.dart';
 import 'add_habit_screen.dart';
+import 'package:in_app_review/in_app_review.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:url_launcher/url_launcher.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -56,8 +59,28 @@ class _HomeScreenState extends State<HomeScreen> {
     await HabitStorage.saveHabits(_habits);
   }
 
+  static const _playStoreUrl =
+      'https://play.google.com/store/apps/details?id=com.sakshi.habitly';
+
+  Future<void> _rateApp() async {
+    // in_app_review has no web implementation, so on Chrome (or any web
+    // build) we just open the Play Store page in a new tab instead —
+    // that way the button is still testable without an Android device.
+    if (kIsWeb) {
+      await launchUrl(Uri.parse(_playStoreUrl), webOnlyWindowName: '_blank');
+      return;
+    }
+
+    final inAppReview = InAppReview.instance;
+    if (await inAppReview.isAvailable()) {
+      inAppReview.requestReview();
+    } else {
+      inAppReview.openStoreListing(appStoreId: 'com.sakshi.habitly');
+    }
+  }
+
   Future<void> _addHabit() async {
-    final name = await Navigator.push<String>(
+    final names = await Navigator.push<List<String>>(
       context,
       MaterialPageRoute(
         builder: (_) => AddHabitScreen(
@@ -65,15 +88,24 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
-    if (name != null && name.trim().isNotEmpty) {
-      setState(() {
+    if (names == null || names.isEmpty) return;
+
+    setState(() {
+      for (final name in names) {
+        final trimmed = name.trim();
+        if (trimmed.isEmpty) continue;
+        // Guard against duplicates one more time here, in case the same
+        // name somehow made it through twice from the picker screen.
+        final alreadyExists = _habits
+            .any((h) => h.name.toLowerCase() == trimmed.toLowerCase());
+        if (alreadyExists) continue;
         _habits.add(Habit(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          name: name.trim(),
+          id: '${DateTime.now().millisecondsSinceEpoch}-${_habits.length}',
+          name: trimmed,
         ));
-      });
-      await HabitStorage.saveHabits(_habits);
-    }
+      }
+    });
+    await HabitStorage.saveHabits(_habits);
   }
 
   Future<void> _deleteHabit(Habit habit) async {
@@ -149,7 +181,16 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Habit Tracker')),
+      appBar: AppBar(
+        title: const Text('Habit Tracker'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.star_rate_rounded),
+            tooltip: 'Rate Habitly',
+            onPressed: _rateApp,
+          ),
+        ],
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : Column(
