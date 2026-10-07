@@ -1,30 +1,62 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:habit_tracker/main.dart';
+import 'package:habit_tracker/screens/home_screen.dart';
+
+String _today() {
+  final d = DateTime.now();
+  return '${d.year.toString().padLeft(4, '0')}-'
+      '${d.month.toString().padLeft(2, '0')}-'
+      '${d.day.toString().padLeft(2, '0')}';
+}
+
+Future<List<dynamic>> _savedHabits() async {
+  final prefs = await SharedPreferences.getInstance();
+  return jsonDecode(prefs.getString('habits')!) as List<dynamic>;
+}
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  setUp(() {
+    SharedPreferences.setMockInitialValues({
+      'habits': jsonEncode([
+        {'id': '1', 'name': 'Drink Water', 'completedDates': <String>[]},
+      ]),
+    });
+  });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  // Regression: on a fresh open, today's tick box used to be treated as a
+  // "future" day (the selected date carried the current time of day), so it
+  // was disabled until the user tapped a date in the strip.
+  testWidgets('today can be ticked straight after opening the app',
+      (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
+    await tester.pumpAndSettle();
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    expect(find.text('Today'), findsOneWidget);
+    expect(find.textContaining("can't log future days"), findsNothing);
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.check_box_outline_blank));
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.check_box), findsOneWidget);
+    final saved = await _savedHabits();
+    expect(saved.first['completedDates'], contains(_today()));
+  });
+
+  testWidgets('tapping again un-ticks today', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.check_box_outline_blank));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.check_box));
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.check_box_outline_blank), findsOneWidget);
+    final saved = await _savedHabits();
+    expect(saved.first['completedDates'], isEmpty);
   });
 }

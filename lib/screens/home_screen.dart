@@ -15,15 +15,39 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   List<Habit> _habits = [];
   bool _loading = true;
-  DateTime _selectedDate = DateTime.now();
+  // Always midnight, never "now" — a time of day here made today compare as
+  // later than today's midnight, so today was treated as a future day and
+  // its tick boxes were locked until the user picked a date in the strip.
+  DateTime _today = _dateOnly(DateTime.now());
+  late DateTime _selectedDate = _today;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadHabits();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // The app can stay open in the background overnight. When it comes back
+  // on a new day, move "today" forward so the user isn't left on yesterday.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    final now = _dateOnly(DateTime.now());
+    if (now == _today) return;
+    setState(() {
+      if (_selectedDate == _today) _selectedDate = now;
+      _today = now;
+    });
   }
 
   Future<void> _loadHabits() async {
@@ -42,9 +66,10 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isSameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
 
-  DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+  static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
-  bool get _isFutureSelected => _selectedDate.isAfter(_dateOnly(DateTime.now()));
+  bool get _isFutureSelected =>
+      _dateOnly(_selectedDate).isAfter(_dateOnly(DateTime.now()));
 
   Future<void> _toggleForSelectedDate(Habit habit) async {
     if (_isFutureSelected) return; // safety net — UI already disables this
@@ -196,8 +221,11 @@ class _HomeScreenState extends State<HomeScreen> {
           : Column(
               children: [
                 DateStrip(
+                  // A new key on a new day rebuilds the strip around the new today.
+                  key: ValueKey(_today),
                   selectedDate: _selectedDate,
-                  onDateSelected: (date) => setState(() => _selectedDate = date),
+                  onDateSelected: (date) =>
+                      setState(() => _selectedDate = _dateOnly(date)),
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
